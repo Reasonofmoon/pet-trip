@@ -38,8 +38,8 @@ interface CourseMapProps {
 
 export default function CourseMap({ spots, activeSpot, onSpotClick }: CourseMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
 
   useEffect(() => {
     // Load Leaflet CSS
@@ -52,7 +52,8 @@ export default function CourseMap({ spots, activeSpot, onSpotClick }: CourseMapP
 
     // Dynamic import of Leaflet
     const initMap = async () => {
-      const L = (await import('leaflet')).default;
+      const L = await import('leaflet');
+      const LDefault = L.default || L;
 
       if (!mapRef.current) return;
       if (mapInstanceRef.current) {
@@ -63,7 +64,7 @@ export default function CourseMap({ spots, activeSpot, onSpotClick }: CourseMapP
       const avgLat = spots.reduce((sum, s) => sum + s.coordinates.mapY, 0) / spots.length || 33.45;
       const avgLng = spots.reduce((sum, s) => sum + s.coordinates.mapX, 0) / spots.length || 126.57;
 
-      const map = L.map(mapRef.current, {
+      const map = LDefault.map(mapRef.current, {
         zoomControl: true,
         attributionControl: true,
       }).setView([avgLat, avgLng], 11);
@@ -71,14 +72,14 @@ export default function CourseMap({ spots, activeSpot, onSpotClick }: CourseMapP
       // VWorld Korean WMTS tiles (한국 지도)
       const vworldKey = process.env.NEXT_PUBLIC_VWORLD_KEY;
       if (vworldKey) {
-        L.tileLayer(`https://api.vworld.kr/req/wmts/1.0.0/${vworldKey}/Base/{z}/{y}/{x}.png`, {
+        LDefault.tileLayer(`https://api.vworld.kr/req/wmts/1.0.0/${vworldKey}/Base/{z}/{y}/{x}.png`, {
           attribution: '&copy; <a href="https://www.vworld.kr">VWorld</a> 국토교통부',
           maxZoom: 19,
           minZoom: 5,
         }).addTo(map);
       } else {
         // Fallback to CartoDB Voyager
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        LDefault.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
           maxZoom: 19,
         }).addTo(map);
@@ -87,7 +88,7 @@ export default function CourseMap({ spots, activeSpot, onSpotClick }: CourseMapP
       mapInstanceRef.current = map;
 
       // Add markers
-      const markers: any[] = [];
+      const markers: L.Marker[] = [];
       const allLatLngs: [number, number][] = [];
 
       spots.forEach((spot, idx) => {
@@ -99,7 +100,7 @@ export default function CourseMap({ spots, activeSpot, onSpotClick }: CourseMapP
         const isActive = activeSpot === spot.contentId;
 
         // Custom HTML icon
-        const icon = L.divIcon({
+        const icon = LDefault.divIcon({
           html: `
             <div style="
               display: flex;
@@ -140,7 +141,7 @@ export default function CourseMap({ spots, activeSpot, onSpotClick }: CourseMapP
           iconAnchor: [isActive ? 22 : 18, isActive ? 22 : 18],
         });
 
-        const marker = L.marker(latLng, { icon }).addTo(map);
+        const marker = LDefault.marker(latLng, { icon }).addTo(map);
 
         // Popup
         marker.bindPopup(`
@@ -162,7 +163,7 @@ export default function CourseMap({ spots, activeSpot, onSpotClick }: CourseMapP
         // Group by time of day for colored segments
         for (let i = 0; i < allLatLngs.length - 1; i++) {
           const timeColor = TIME_COLORS[getTimeOfDay(spots[i].arrivalTime)];
-          L.polyline([allLatLngs[i], allLatLngs[i + 1]], {
+          LDefault.polyline([allLatLngs[i], allLatLngs[i + 1]], {
             color: timeColor,
             weight: 3,
             opacity: 0.6,

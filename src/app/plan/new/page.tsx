@@ -10,7 +10,6 @@ import {
   ChevronRight,
   ChevronLeft,
   Sparkles,
-  Dog,
   Loader2,
   TreePine,
   Coffee,
