@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { searchKeyword } from '@/lib/api-client';
-import { MOCK_JEJU_PLACES } from '@/lib/mock-data';
+import { searchKeyword, getAreaBasedList } from '@/lib/api-client';
+import { MOCK_JEJU_PLACES, MOCK_AREAS } from '@/lib/mock-data';
 import { Place } from '@/types';
 
 export async function GET(request: Request) {
@@ -14,26 +14,75 @@ export async function GET(request: Request) {
       throw new Error('No API key');
     }
 
-    const rawItems = await searchKeyword({
-      keyword: keyword || '반려동물',
-      areaCode,
-      contentTypeId,
-      numOfRows: 30,
+    let items: Place[];
+
+    if (keyword) {
+      // Keyword search
+      const rawItems = await searchKeyword({
+        keyword,
+        areaCode,
+        contentTypeId,
+        numOfRows: 50,
+      });
+
+      items = rawItems.map((item) => ({
+        contentId: item.contentid,
+        contentTypeId: item.contenttypeid,
+        title: item.title,
+        addr1: item.addr1,
+        areaCode: areaCode || '',
+        mapX: parseFloat(item.mapx) || 0,
+        mapY: parseFloat(item.mapy) || 0,
+        firstImage: item.firstimage,
+        tel: item.tel,
+      }));
+    } else if (areaCode) {
+      // Area-based browse
+      const rawItems = await getAreaBasedList({
+        areaCode,
+        contentTypeId,
+        numOfRows: 50,
+        arrange: 'Q', // popular first
+      });
+
+      items = rawItems.map((item) => ({
+        contentId: item.contentid,
+        contentTypeId: item.contenttypeid,
+        title: item.title,
+        addr1: item.addr1,
+        areaCode: item.areacode,
+        mapX: parseFloat(item.mapx) || 0,
+        mapY: parseFloat(item.mapy) || 0,
+        firstImage: item.firstimage,
+        tel: item.tel,
+      }));
+    } else {
+      // Default: search all pet-friendly places
+      const rawItems = await searchKeyword({
+        keyword: '반려동물',
+        numOfRows: 50,
+      });
+
+      items = rawItems.map((item) => ({
+        contentId: item.contentid,
+        contentTypeId: item.contenttypeid,
+        title: item.title,
+        addr1: item.addr1,
+        areaCode: '',
+        mapX: parseFloat(item.mapx) || 0,
+        mapY: parseFloat(item.mapy) || 0,
+        firstImage: item.firstimage,
+        tel: item.tel,
+      }));
+    }
+
+    const areaName = areaCode ? MOCK_AREAS.find(a => a.code === areaCode)?.name : undefined;
+
+    return NextResponse.json({
+      items,
+      total: items.length,
+      areaName,
     });
-
-    const items: Place[] = rawItems.map((item) => ({
-      contentId: item.contentid,
-      contentTypeId: item.contenttypeid,
-      title: item.title,
-      addr1: item.addr1,
-      areaCode: areaCode || '',
-      mapX: parseFloat(item.mapx) || 0,
-      mapY: parseFloat(item.mapy) || 0,
-      firstImage: item.firstimage,
-      tel: item.tel,
-    }));
-
-    return NextResponse.json({ items });
   } catch (error) {
     console.error('Search failed:', error);
     // Mock fallback
@@ -42,6 +91,6 @@ export async function GET(request: Request) {
       if (areaCode && p.areaCode !== areaCode) return false;
       return true;
     });
-    return NextResponse.json({ items: filtered });
+    return NextResponse.json({ items: filtered, total: filtered.length, fallback: true });
   }
 }

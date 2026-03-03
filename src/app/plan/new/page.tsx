@@ -98,6 +98,9 @@ export default function PlanNewPage() {
     setIsGenerating(true);
 
     try {
+      // Read BYOK Gemini key from localStorage
+      const geminiApiKey = typeof window !== 'undefined' ? localStorage.getItem('pettrip_gemini_key') || '' : '';
+
       const res = await fetch('/api/course/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,6 +109,7 @@ export default function PlanNewPage() {
           dates: wizard.dates,
           pet: { ...wizard.pet, breed: localBreed },
           preferences: { ...wizard.preferences, categories: localCategories },
+          geminiApiKey,
         }),
       });
 

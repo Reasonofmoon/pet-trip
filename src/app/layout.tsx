@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import HeaderNav from "@/components/layout/HeaderNav";
 
 export const metadata: Metadata = {
   title: "PetTrip Planner 🐾 | AI 반려동물 동반여행 코스 플래너",
@@ -59,17 +60,7 @@ export default function RootLayout({
             </span>
           </a>
 
-          <nav style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <a href="/plan/new" className="btn btn-ghost btn-sm">
-              코스 만들기
-            </a>
-            <a href="/search" className="btn btn-ghost btn-sm">
-              장소 검색
-            </a>
-            <a href="/plan/new" className="btn btn-primary btn-sm">
-              여행 시작하기
-            </a>
-          </nav>
+          <HeaderNav />
         </header>
 
         {/* Main */}
